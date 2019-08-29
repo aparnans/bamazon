@@ -26,7 +26,7 @@ function connectDB() {
 };
 // This function is to accept password again if the earlier attempt failed 
 function acceptPassword() {
-    console.log('in accept password again');
+    //console.log('in accept password again');
     inquirer.prompt([
         {
             type: "password",
@@ -35,7 +35,7 @@ function acceptPassword() {
         }
     ]).then(function (res) {
         if (isPasswordValid(gPassword, res.myPassword)) {
-            console.log('Returning after passwords match in acceptPassword');
+            //console.log('Returning after passwords match in acceptPassword');
             return true;
         }
         else {
@@ -68,7 +68,7 @@ function acceptUserName() {
                     gPassword = res[0].password;
                     gUser = user.userName;
                     if (isPasswordValid(gPassword, user.myPassword)) {
-                        console.log("password is valid");
+                        //console.log("password is valid");
                         guserVerified = true;
                         // If the username and password are valid then populate department list to choose from                         
                         getDepartmentList();
@@ -85,12 +85,12 @@ function acceptUserName() {
 }
 
 function isPasswordValid(dbPassword, password) {
-    console.log('in isPasswordValid : dbPassword : password : ', dbPassword, password);
+    //console.log('in isPasswordValid : dbPassword : password : ', dbPassword, password);
     if (dbPassword != password) {
         return false;
     } else {
         guserVerified = true;
-        console.log('passwords match');
+        //console.log('passwords match');
         return true;
     }
 }
@@ -120,7 +120,7 @@ function acceptDepartment() {
             })
             .then(function (answer) {
                 // based on their answer, show the list of items to choose from 
-                console.log(answer.department);
+                //console.log(answer.department);
                 acceptItem(answer.department);
 
                 return true;
@@ -137,15 +137,15 @@ function acceptItem(pDepartment){
         [pDepartment],
         function (error, res) {
             if (error) throw error;
-            console.log(res[0].productCnt);
+            //console.log(res[0].productCnt);
              if(res[0].productCnt > 1) {
-                 console.log('more than one');
+                 //console.log('more than one');
                  // call Accept Item name
                  gConnection.query('select distinct product_name from products where department_name =?',
                  [pDepartment],
                  function(error, res){
                      if (error) throw error;
-                     console.log(res);
+                     //console.log(res);
                      for(var i=0; i<res.length; i++){
                          productArray.push(res[i].product_name);
                      }
@@ -159,7 +159,7 @@ function acceptItem(pDepartment){
                         })
                         .then(function (answer) {
                             // based on their answer, show the list of items to choose from 
-                            console.log(answer.product_name);
+                            //console.log(answer.product_name);
                             populateSizeArray(pDepartment, answer.product_name);
                             return true;
                         });
@@ -172,7 +172,7 @@ function acceptItem(pDepartment){
                                 [pDepartment],
                                 function(error, res){
                                     if (error) throw error;
-                                    console.log(res);
+                                    //console.log(res);
                                     populateSizeArray(pDepartment, res[0].product_name);
                                 });
                 }
@@ -180,12 +180,12 @@ function acceptItem(pDepartment){
 }
 
 function populateSizeArray(pDepartment, pItem){
-    console.log('In populateSizeArray - pDepartment, pItem : '+pDepartment, pItem);
+    //console.log('In populateSizeArray - pDepartment, pItem : '+pDepartment, pItem);
     
     gConnection.query('select size from products where department_name = ? and product_name = ?',[pDepartment,pItem],
     function (error, res) {
         if (error) throw error;
-        console.log(res[0].size);
+        //console.log(res[0].size);
         for(var i =0;i<res.length;i++){
             sizeArray.push(res[i].size);
         }
@@ -203,7 +203,7 @@ function acceptSize(pDepartment, pItem){
             })
             .then(function (answer) {
                 // based on their answer, show the list of items to choose from 
-                console.log(answer.size);
+                //console.log(answer.size);
                 acceptQuantity(pDepartment, pItem, answer.size);
                 return true;
             });
@@ -218,17 +218,23 @@ function acceptQuantity(pDepartment, pItem, pSize){
             })
             .then(function (answer) {
                 // based on their answer, show the list of items to choose from 
-                console.log(answer.quantity);
+                //console.log(answer.quantity);
                 var query = ' select stock_quantity quantity from products where department_name = "'+pDepartment+'" and product_name = "'+pItem+'" and size = "'+pSize+'"';
 
                 gConnection.query(query, 
                 function(error, res){
                     if (error) throw error;
                     if(answer.quantity <= res[0].quantity){
+                        console.log('\n');
                         console.log('Great! Let me get that item for you.');
+                        console.log('\n');
                         updateQuantity(pDepartment, pItem, pSize, answer.quantity, 'DEDUCT');
                     }else {
+                        console.log('\n');
                         console.log('not enough quantity ... let me see what I can do');
+                        console.log('...\n');
+                        console.log('...\n');
+                        console.log('...\n');
                         updateQuantity(pDepartment, pItem, pSize, answer.quantity,'ADD');
                     }
                     return true;
@@ -251,18 +257,27 @@ function updateQuantity(pDepartment, pItem, pSize, pQuantity, action){
     gConnection.query(query ,  
          function(error, res){
             if (error) throw error;
-            console.log(res);
-            orderItem(pDepartment, pItem, pSize, pQuantity);                
+            //console.log(res);
+            if(action === 'ADD'){
+                updateQuantity(pDepartment, pItem, pSize, pQuantity, 'DEDUCT');
+                return true;
+            }else{
+                orderItem(pDepartment, pItem, pSize, pQuantity);
+            }                
          });                           
 };
 
 function orderItem(pDepartment, pItem, pSize, pQuantity){
+    console.log('<----------------------------------------------------------------------------------->')
+    console.log('Your '+pItem+' from '+pDepartment+' - size: '+pSize+' - quantity: '+pQuantity+' is ready to pick up!');
+    console.log('\n');
     endConnection();
 };
 
 
 function endConnection() {
-    console.log('Thank you for shopping with us');
+    console.log('Thank you for shopping with us!!!!!');
+    console.log('<----------------------------------------------------------------------------------->')
     gConnection.end();
 }
 
