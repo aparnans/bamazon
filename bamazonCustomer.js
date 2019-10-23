@@ -26,6 +26,7 @@ function connectDB() {
 };
 // This function is to accept password again if the earlier attempt failed 
 function acceptPassword() {
+
     //console.log('in accept password again');
     inquirer.prompt([
         {
@@ -34,11 +35,16 @@ function acceptPassword() {
             message: "The password does not match, Please enter it again: "
         }
     ]).then(function (res) {
-        if (isPasswordValid(gPassword, res.myPassword)) {
+        //console.log('in then of acceptPAssword');
+        var ispwd = isPasswordValid(gPassword, res.myPassword); 
+        //console.log('ispwd',ispwd);
+        if (ispwd) {
             //console.log('Returning after passwords match in acceptPassword');
+            getDepartmentList();
             return true;
         }
         else {
+            //console.log('in else of acceptPassword');
             acceptPassword();
         };
     })
@@ -74,6 +80,7 @@ function acceptUserName() {
                         getDepartmentList();
                     }
                     else {
+                        //console.log('pwd does not match');
                         acceptPassword();
                         return true;
                     }
@@ -93,10 +100,18 @@ function isPasswordValid(dbPassword, password) {
         //console.log('passwords match');
         return true;
     }
+    //console.log('should not come here');
 }
+function displayProducts(){
+    gConnection.query('SELECT department_name, product_name, size, price from products', function(err, res){
+        if (err) throw err;
 
+        console.table(res);
+    })
+}
 // populate the global array to hold department names
 function getDepartmentList() {
+    displayProducts();
     //use the connection to select department names
     gConnection.query('SELECT distinct department_name from products', function (error, res) {
         if (error) throw error;
@@ -215,34 +230,39 @@ function acceptQuantity(pDepartment, pItem, pSize){
                 name: "quantity",
                 type: "input",
                 message: "Please enter quantity :"
-            })
+            }
+            )
             .then(function (answer) {
+                var pricePerItem = 0;
                 // based on their answer, show the list of items to choose from 
                 //console.log(answer.quantity);
-                var query = ' select stock_quantity quantity from products where department_name = "'+pDepartment+'" and product_name = "'+pItem+'" and size = "'+pSize+'"';
+                var query = ' select stock_quantity quantity, price pricePerItem from products where department_name = "'+pDepartment+'" and product_name = "'+pItem+'" and size = "'+pSize+'"';
 
                 gConnection.query(query, 
                 function(error, res){
                     if (error) throw error;
+                    console.log('-------------------------');
+                    console.log('Price per Item : '+res[0].pricePerItem);
+                    console.log('-------------------------');
                     if(answer.quantity <= res[0].quantity){
                         console.log('\n');
                         console.log('Great! Let me get that item for you.');
                         console.log('\n');
-                        updateQuantity(pDepartment, pItem, pSize, answer.quantity, 'DEDUCT');
+                        updateQuantity(pDepartment, pItem, pSize, answer.quantity, res[0].pricePerItem, 'DEDUCT');
                     }else {
                         console.log('\n');
                         console.log('not enough quantity ... let me see what I can do');
                         console.log('...\n');
                         console.log('...\n');
                         console.log('...\n');
-                        updateQuantity(pDepartment, pItem, pSize, answer.quantity,'ADD');
+                        updateQuantity(pDepartment, pItem, pSize, answer.quantity,res[0].pricePerItem, 'ADD');
                     }
                     return true;
                 })
             });
 }
 
-function updateQuantity(pDepartment, pItem, pSize, pQuantity, action){
+function updateQuantity(pDepartment, pItem, pSize, pQuantity, pricePerItem, action){
     var where = ' where department_name = "'+pDepartment+'" and product_name = "'+pItem+'" and size = "'+pSize+'"';
     var query;
     
@@ -259,17 +279,21 @@ function updateQuantity(pDepartment, pItem, pSize, pQuantity, action){
             if (error) throw error;
             //console.log(res);
             if(action === 'ADD'){
-                updateQuantity(pDepartment, pItem, pSize, pQuantity, 'DEDUCT');
+                updateQuantity(pDepartment, pItem, pSize, pQuantity, pricePerItem, 'DEDUCT');
                 return true;
             }else{
-                orderItem(pDepartment, pItem, pSize, pQuantity);
+                orderItem(pDepartment, pItem, pSize, pQuantity, pricePerItem);
             }                
          });                           
 };
 
-function orderItem(pDepartment, pItem, pSize, pQuantity){
+function orderItem(pDepartment, pItem, pSize, pQuantity, pricePerItem){
+    var totalPrice = pricePerItem * pQuantity;
     console.log('<----------------------------------------------------------------------------------->')
     console.log('Your '+pItem+' from '+pDepartment+' - size: '+pSize+' - quantity: '+pQuantity+' is ready to pick up!');
+    console.log('\n');
+    console.log('<----------------------------------------------------------------------------------->')
+    console.log('Your total price is '+totalPrice);
     console.log('\n');
     endConnection();
 };
